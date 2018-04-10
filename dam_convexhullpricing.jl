@@ -73,11 +73,11 @@ function  convexhullpricing(mydata::damdata; ramp_activation = 0)
   end
 
 
-  # Objective: maximizing welfare -> see (1) or (64)
+  # Objective: maximizing welfare -> see (1) or (6)
   obj = dot(x,(hourly[:,:QI].data).*(hourly[:,:PI0].data)) +  dot(xh,(mp_hourly[:,:QH].data).*(mp_hourly[:,:PH].data)) - dot(u, mp_headers[:, :FC])
   @objective(m, Max,  obj)
 
-  # balance constraint (6) or (70) specialized to a so-called 'ATC network model' (i.e. transportation model)
+  # balance constraint (2) specialized to a so-called 'ATC network model' (i.e. transportation model)
   @constraint(m, balance[loc in areas, t in periods],
   sum(x[i]*hourly[i, :QI] for i=1:nbHourly if hourly[i, :LI] == loc && hourly[i, :TI]==t ) # executed quantities of the 'hourly bids' for a given location 'loc' and time slot 't'
   +
@@ -95,9 +95,9 @@ function  convexhullpricing(mydata::damdata; ramp_activation = 0)
   xhval_=getvalue(xh)
   fval_=getvalue(f)
 
-  status = solve(m, relaxation = true)
+  status = solve(m, relaxation = true) # solves the continuous relaxation to be able to extract Convex Hull Prices as dual vars to the balance constraints
   objvalrelax=getobjectivevalue(m)
-  priceval_ = getdual(balance)
+  priceval_ = getdual(balance) # getting the convex hull prices (dual var. values) 
 
   uplifs_dualgap = objvalrelax - objval
 

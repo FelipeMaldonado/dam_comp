@@ -58,23 +58,23 @@ function  ippricing(mydata::damdata; ramp_activation = 0)
   end
 
   @constraint(m, mp_control_upperbound[h=1:nbMpHourly, c=1:nbMp;  mp_hourly[h,:MP] == mp_headers[c,:MP]],
-                  xh[h] <= u[c]) # constraint (6), dual variable is shmax[h]
+                  xh[h] <= u[c]) # constraint (8), dual variable is shmax[h]
   @constraint(m, mp_control_lowerbound[h=1:nbMpHourly, c=1:nbMp;  mp_hourly[h,:MP] == mp_headers[c,:MP]],
-                  xh[h] >= mp_hourly[h,:AR]*u[c]) # constraint (7), dual variable is shmin[h]
+                  xh[h] >= mp_hourly[h,:AR]*u[c]) # constraint (9), dual variable is shmin[h]
 
   if ramp_activation == 1
     @constraint(m, rampup_constr[c in 1:nbMp, t in periods; !isna(rup[c]) && t != periods[end]],
       sum((-1)*xh[h]*mp_hourly[h, :QH]  for h in 1:nbMpHourly if mp_hourly[h,:MP] == mp_headers[c,:MP] &&  mp_hourly[h, :TH]==(t+1))
       - sum((-1)*xh[h]*mp_hourly[h, :QH]  for h in 1:nbMpHourly if mp_hourly[h,:MP] == mp_headers[c,:MP] &&  mp_hourly[h, :TH]==t)
-      <= rup[c]*u[c] ) # constraints (10)
+      <= rup[c]*u[c] ) # constraints (12)
     @constraint(m, rampdown_constr[c in 1:nbMp, t in periods; !isna(rdown[c]) && t != periods[end]],
       sum((-1)*xh[h]*mp_hourly[h, :QH]  for h in 1:nbMpHourly if mp_hourly[h,:MP] == mp_headers[c,:MP] &&  mp_hourly[h, :TH]==t)
       - sum((-1)*xh[h]*mp_hourly[h, :QH]  for h in 1:nbMpHourly if mp_hourly[h,:MP] == mp_headers[c,:MP] &&  mp_hourly[h, :TH]==(t+1))
-      <= rdown[c]*u[c] ) # constraints (11)
+      <= rdown[c]*u[c] ) # constraints (13)
   end
 
 
-  # Objective: maximizing welfare -> see (1) specialized to (4). N.B. Steps of classical bid curves (quantities QI and prices PI0) are treated separately
+  # Objective: maximizing welfare -> see (1) specialized to (6). N.B. Steps of classical bid curves (quantities QI and prices PI0) are treated separately
   obj = dot(x,(hourly[:,:QI].data).*(hourly[:,:PI0].data)) +  dot(xh,(mp_hourly[:,:QH].data).*(mp_hourly[:,:PH].data)) - dot(u, mp_headers[:, :FC])
   @objective(m, Max,  obj)
 
@@ -88,7 +88,7 @@ function  ippricing(mydata::damdata; ramp_activation = 0)
   )
 
 
-  status = solve(m)
+  status = solve(m) # solves the pure welfare maximizing program
   objval=getobjectivevalue(m)
 
   uval_=getvalue(u)
@@ -97,14 +97,16 @@ function  ippricing(mydata::damdata; ramp_activation = 0)
   fval_=getvalue(f)
 
 
-  @constraint(m, ufix[c in 1:nbMp], u[c] == uval_[c])
+  @constraint(m, ufix[c in 1:nbMp], u[c] == uval_[c]) # fixes the binary variables u_c to their (optimal) value
 
+  # solves the "continuous relaxation" of the welfare max. prog. but which is indeed an LP as the u_c have fixed values
+  # However, to extract dual var values below, one must here explicitely indicates "relaxation=true" when re-optimizing
   status = solve(m, relaxation = true)
 
 #################################################################################################
-  ufixdual = getdual(ufix)
+  ufixdual = getdual(ufix) # get the startup prices as dual var to constraints (42)-(43)
   priceval_ = getdual(balance)
-  stpricesval = ufixdual.*uval_
+  # stpricesval = ufixdual.*uval_ # n.b. not needed as uplifts below are computed by mult. by uval_ but now keeps info on startup prices also for rejected bids
 
   mycandidate=damsolip(xval_, uval_, xhval_, fval_, priceval_, stpricesval)
 
