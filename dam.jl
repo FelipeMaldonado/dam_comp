@@ -4,9 +4,8 @@
 #  file, You can obtain one at http://www.gnu.org/licenses/gpl-3.0.en.html
 #############################################################################
 
-# pwd()  # to get your current workind dir
-
-cd("/home/lxuser/devel/dam_comp/") # Set your working directory appropriately, for example: cd("/home/devel/dam_comp/")
+pwd()  # to get your current workind dir
+# cd("/home/lxuser/devel/dam_comp/") # Set your working directory appropriately, for example: cd("/home/devel/dam_comp/")
 
 using JuMP,  DataFrames, DataArrays, CPLEX
 include("dam_utils.jl")
@@ -16,7 +15,7 @@ include("dam_ippricing.jl")
 
 welfare_uplifts_comp = DataFrame(Inst = Int64[],Nb_MpBids=Float64[], Nb_Steps=Float64[], welfareCHP = Float64[], welfareIP = Float64[], welfareEU = Float64[], upliftsCHP = Float64[], upliftsIP = Float64[], runEU = Float64[], runIP = Float64[], runCHP = Float64[], pabEU = Int64[], prbEU = Int64[], pabIP = Int64[], prbIP = Int64[], pabCHP = Int64[], prbCHP = Int64[], accMicsEu = Int64[])
 
-for ssid in 0:10
+for ssid in 0:13
 
 areas=readtable(string("./data/daminst-", ssid,"/areas.csv"))                   # list of bidding zones
 periods=readtable(string("./data/daminst-", ssid,"/periods.csv"))               # list of periods considered
@@ -32,7 +31,7 @@ nbMpHourly = nrow(mydata.mp_hourly)
 
 runtime_euro = @elapsed eurosol = europricing(mydata, method_type = "benders_modern", ramp_activation = 1)
 runtime_ip   = @elapsed ipsol = ippricing(mydata, ramp_activation = 1)
-runtime_chp  = @elapsed chpsol = convexhullpricing(mydata, ramp_activation = 1) 
+runtime_chp  = @elapsed chpsol = convexhullpricing(mydata, ramp_activation = 1)
 
 europrb = countprb(mydata, eurosol.sol, ramp_activation = 1)
 europab = countpab(mydata, eurosol.sol)
