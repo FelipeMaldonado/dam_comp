@@ -106,7 +106,7 @@ function  ippricing(mydata::damdata; ramp_activation = 0)
 #################################################################################################
   ufixdual = getdual(ufix) # get the startup prices as dual var to constraints (42)-(43)
   priceval_ = getdual(balance)
-  # stpricesval = ufixdual.*uval_ # n.b. not needed as uplifts below are computed by mult. by uval_ but now keeps info on startup prices also for rejected bids
+  stpricesval = ufixdual #.*uval_ # n.b. not needed as uplifts below are computed by mult. by uval_ but now keeps info on startup prices also for rejected bids
 
   mycandidate=damsolip(xval_, uval_, xhval_, fval_, priceval_, stpricesval)
 
