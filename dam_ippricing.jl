@@ -16,7 +16,7 @@ type ippricing_val
   absgap::Float64
   runtime::Float64
   uplifts::Float64
-  stprices
+  stprices # startup prices
 end
 
 
